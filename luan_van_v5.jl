@@ -4,9 +4,9 @@
 # Training dữ liệu của 182/182 user, mỗi user bỏ qua location cuối cùng
 # Tính tỷ lệ trung bình predict trúng khi predict last location của các user
 # ----Cách sử dụng------------
+# 0. Chạy hàm CreateData() để tạo dữ liệu ma trận
 # 1. Gọi hàm run() để chạy phân tích dữ liệu
-# 2. Gọi hàm test(u) để test user u đang test thuộc nhóm nào
-# 3. Gọi hàm predict(current_position) để kiểm tra kết quả predict của user đang test
+# 2. Gọi hàm analytics để chạy phân tích
 ###########################################################################
 
 using Clustering
@@ -18,28 +18,30 @@ minLatitudeAll = 10;
 maxLatitudeAll = 4002;
 minLongitudeAll = -1800;
 maxLongitudeAll = 1800;
-maxLenghtTrajectory = 0;
-listUserSameGroup = Dict(); # Danh sách user chung nhóm với user đang test 
+maxLenghtTrajectory = 10104;
+listUserSameGroup = Dict(); # Danh sách user chung nhóm với user đang test
 
 function CreateData()
-	folderName = "Geolife Trajectories 1.3\\Data\\";
+	folderName = "/Users/me294cto/Geolife Trajectories 1.3/Data/";
 	minLatitudeAll = 0;
 	maxLatitudeAll = 0;
 	minLongitudeAll = 0;
 	maxLongitudeAll = 0;
 	maxLenghtTrajectory = 0;
-	
+
 	for userFolder in readdir(folderName)
+		if (userFolder == ".DS_Store" || userFolder == "Icon\r")
+			continue;
+		end
 		preA = 0;
 		preB = 0;
 		user_trajectory_lenght = 0;
-		
-		f = open(string("userdata\\",userFolder,".txt"),"w");
-		for fileInFolder in readdir(string(folderName,userFolder,"\\","Trajectory\\"))
-			
+		f = open(string("userdata/",userFolder,".txt"),"w");
+		for fileInFolder in readdir(string(folderName,userFolder,"/","Trajectory/"))
+
 			dismiss =1;
-			
-			open(string(folderName,userFolder,"\\","Trajectory\\",fileInFolder)) do filehandle
+
+			open(string(folderName,userFolder,"/","Trajectory/",fileInFolder)) do filehandle
 
 				for line in eachline(filehandle)
 					if(dismiss>6)
@@ -47,11 +49,11 @@ function CreateData()
 						a = round(Int, parse(Float64,x[1])/d);
 						b = round(Int, parse(Float64,x[2])/d);
 						if(a != preA || b != preB)
-						
+
 							write(f,string(a,",",b," "));
-							
+
 							#update minLatitudeAll,minLongitudeAll,maxLatitudeAll,maxLongitudeAll;
-							
+
 							if minLatitudeAll == 0 || minLatitudeAll > a
 								minLatitudeAll = a;
 							end
@@ -64,7 +66,7 @@ function CreateData()
 							if maxLongitudeAll == 0 || maxLongitudeAll < b
 								maxLongitudeAll = b;
 							end
-							
+
 							user_trajectory_lenght = user_trajectory_lenght + 1;
 
 							preA = a;
@@ -73,18 +75,18 @@ function CreateData()
 					end
 					dismiss=dismiss+1;
 				end
-			 
+
 			end
 		end
-		
+
 		if(user_trajectory_lenght > maxLenghtTrajectory)
-			maxLenghtTrajectory = user_trajectory_lenght;println(maxLenghtTrajectory);
+			maxLenghtTrajectory = user_trajectory_lenght;
 		end
 
 		close(f);
-		#println(userFolder);
+		println(userFolder);
 	end
-	
+println("test");
 	f = open("maxmin.txt","w");
 	write(f,string(minLatitudeAll," ", maxLatitudeAll, " ", minLongitudeAll, " ", maxLongitudeAll, " ", maxLenghtTrajectory));
 	close(f);
@@ -95,7 +97,7 @@ function hashing_vectorizer(features,N)
 	x = zeros(N);
 	for f in features
 		h = hash(f);
-		x[h % N] += 1; 
+		x[(h % N)+1] += 1;
 	end
 	return x;
 end
@@ -117,7 +119,7 @@ function create_user_trajectory(u,include_last_location)
 	m = maxLatitudeAll - minLatitudeAll;
 	v = zeros(Int64,maxLenghtTrajectory,1);
 	i = 1;
-	open(string("userdata\\",get_file_name(u))) do filehandle
+	open(string("userdata/",get_file_name(u))) do filehandle
 			for line in eachline(filehandle)
 				for p in split(line," ")
 					p1 = split(p,",");
@@ -128,11 +130,11 @@ function create_user_trajectory(u,include_last_location)
 						v[i] = index;
 						i = i + 1;
 					end
-				end	
+				end
 			end
 	end
 	if(include_last_location == 0)
-		v[i] = 0;
+		v[i-1] = 0;
 	end
 	return v;
 end
@@ -176,7 +178,7 @@ function set_max_min_config_from_data()
 	maxmin = readall(f);
 	maxmin = split(maxmin," ");
 	close(f);
-	
+
 	minLatitudeAll = parse(Int,maxmin[1]);
 	maxLatitudeAll = parse(Int,maxmin[2]);
 	minLongitudeAll = parse(Int,maxmin[3]);
@@ -193,42 +195,43 @@ function run()
 	set_max_min_config_from_data();
 	data = zeros(feature_hashing_lenght,test_user_count);
 	for i = 1:test_user_count
-		v = create_user_trajectory(i-1,0);println(i);
+		v = create_user_trajectory(i-1,0);
 		t = convert_to_trajectory_vector(v);
 		for x in 1:feature_hashing_lenght
 			data[x,i] = t[x];
 		end
 	end
-	
+
 	println(string("Tao xong du lieu dua vao k-mean ",size(data)));
 	writedlm("KMeanData.txt",data);
 	#println("Ghi xong dữ liệu vô KMeanData.txt");
-	
+
 	run_kmean(data);
 end
 
 # Hàm chuyển đổi vector các điểm di chuyển của user sang thành vector quỹ đạo di chuyển
 function convert_to_trajectory_vector(v)
-	data = zeros(maxLenghtTrajectory,maxLenghtTrajectory);
-	
+	w = maxLatitudeAll - minLatitudeAll;
+	h = maxLongitudeAll = minLongitudeAll;
+	data = zeros(maxLenghtTrajectory);
+	data_index = 1;
+
 	prePosition = -1;
 		for i in 1:maxLenghtTrajectory
 			if v[i] != 0
 				if prePosition == -1
-					prePosition = i;
+					prePosition = v[i];
 				else
-					data[prePosition,i] = 1;
-					prePosition = i;
+					data[data_index] = ((prePosition-1)*w) + v[i];
+					data_index = data_index + 1;
+					prePosition = v[i];
 				end
-
 			end
 		end
-		
-		DTemp = reshape(data,maxLenghtTrajectory*maxLenghtTrajectory,1);
-		Dtemp1 = hashing_vectorizer(DTemp,feature_hashing_lenght);
-		#println(string("funcion convert_to_trajectory_vector(), kết quả: ", size(Dtemp1)));
+
+		Dtemp1 = hashing_vectorizer(data,feature_hashing_lenght);
 		return Dtemp1;
-		
+
 end
 
 # Lấy các vector của các nhóm kết quả phân tích từ k-mean
@@ -242,18 +245,43 @@ function get_distance_of_two_vector(a,b)
 	return norm(a-b);
 end
 
-# Dự đoán vị trí sẽ đến tiếp theo của user 
+# Dự đoán vị trí sẽ đến tiếp theo của user
 # Duyệt quỹ đạo của các user cùng nhóm, chọn điểm đến tiếp theo, lấy điểm có tầng xuất xuất hiện nhiều nhất.
-function predict(current_position)
+function predict(current_user, user_group_index)
+	println(string("user đang dự đoán:", current_user));
+	ketqua_kmean_a = readdlm("KetQuaKMean_a.txt");
+	#println(size(ketqua_kmean_a));
+
+	for i in 1:test_user_count
+		if ketqua_kmean_a[i] == user_group_index
+			listUserSameGroup[i] = i;
+		end
+	end
+
+	#print("Danh sách các user cùng nhóm với user đang test:");
+	#print(keys(listUserSameGroup));
+
+	#print("Quy dao cua user dang test:");
+	user_vector = create_user_trajectory(current_user,0);
+	last_location = -1;
+	pre_last_location = -1;
+	for i in user_vector
+		if(i!=0)
+			pre_last_location = last_location;
+			last_location = i;
+			#print(string(i,"=>"));
+		end
+	end
+
 	#println(string("Danh sách các user cùng nhóm với user đang test: ",listUserSameGroup));
 	next_position = Dict();
 	flag = 0;
 	count = 0;
 	able_index = 0;
 	for u in keys(listUserSameGroup)
-		user_vector = create_user_trajectory(u,1);
+		user_vector = create_user_trajectory(u-1,1);
 		for p in user_vector
-			if p == current_position
+			if p == pre_last_location
 				count = count + 1;
 				flag = 1;
 			elseif flag == 1
@@ -264,34 +292,39 @@ function predict(current_position)
 					count = next_position[p];
 					next_position[p] = count + 1;
 				end
-				
+
 				if able_index < next_position[p]
 					able_index = p;
 				end
 			end
 		end
 	end
-	
-	println(string("Dự đoán điểm đến tiếp theo của user là: ",able_index, ", tỷ lệ xuất hiện: ", next_position[able_index]) );
+
+	#println(string("Dự đoán điểm đến tiếp theo của user là: ",able_index, ", tỷ lệ xuất hiện: ", next_position[able_index]) );
+	if able_index == 0
+		return 0;
+	end
+
+	return able_index == last_location;
 
 end
 
 # Kiểm tra user u thuộc nhóm nào trong các nhóm kết quả đã phân tích ở kmean.
 # Liệt kê danh sách những user chung nhóm với u.
-function test(u)
+function check_group(u)
 	kmeans_data = get_kmean_data_result();
 	#println(string("size của dữ liệu kmean =",size(kmeans_data)));
-	
+
 	min_distance =0;
 	min_index = 1;
 	user_vector = create_user_trajectory(u,0);
 	for i in 1:number_group_kmean
 		kmean_vector = kmeans_data[:,i];
-		d = get_distance_of_two_vector(kmean_vector,user_vector);
-		
+		d = get_distance_of_two_vector(kmean_vector,convert_to_trajectory_vector(user_vector));
+
 		if min_distance == 0
 			min_distance = d;
-		end	
+		end
 		#can hoi lai thay cho so sanh nay
 		if d < min_distance
 			min_distance = d;
@@ -299,25 +332,20 @@ function test(u)
 		end
 	end
 	println(string("User đang test thuộc nhóm: ",min_index));
-	ketqua_kmean_a = readdlm("KetQuaKMean_a.txt");
-	#println(size(ketqua_kmean_a));
+	return min_index;
 
-	for i in 1:test_user_count
-		if ketqua_kmean_a[i] == min_index
-			listUserSameGroup[i] = i;
-		end
-	end
-	
-	print("Danh sách các user cùng nhóm với user đang test:");
-	print(keys(listUserSameGroup));
-	println("");
-	print("Quy dao cua user dang test:");
-	for i in user_vector
-		if(i!=0)
-			print(string(i,"=>"));
-		end
-	end
-	
 end
- 
 
+# Thống kê tỷ lệ predict last location đúng
+#
+function analytics()
+	true_predict_count = 0;
+	for i in 0:181
+		group_index = check_group(i);
+		result = predict(i,group_index);
+		println(string("Kết quả dự đoán điểm cuối:",result));
+		true_predict_count = true_predict_count + result;
+	end
+
+	println(string("Tỷ lệ dự đóan trúng là: ",true_predict_count/182*100," %"));
+end
