@@ -9,7 +9,7 @@ maxLatitudeAll = 4002;
 minLongitudeAll = -1800;
 maxLongitudeAll = 1800;
 maxLenghtTrajectory = 10104;
-listUserSameGroup = Dict(); # Danh sách user chung nhóm với user đang test 
+listUserSameGroup = Dict(); # Danh sách user chung nhóm với user đang test
 
 function CreateData()
 	folderName = "Geolife Trajectories 1.3\\Data\\";
@@ -18,17 +18,17 @@ function CreateData()
 	minLongitudeAll = 0;
 	maxLongitudeAll = 0;
 	maxLenghtTrajectory = 0;
-	
+
 	for userFolder in readdir(folderName)
 		preA = 0;
 		preB = 0;
 		user_trajectory_lenght = 0;
-		
+
 		f = open(string("userdata\\",userFolder,".txt"),"w");
 		for fileInFolder in readdir(string(folderName,userFolder,"\\","Trajectory\\"))
-			
+
 			dismiss =1;
-			
+
 			open(string(folderName,userFolder,"\\","Trajectory\\",fileInFolder)) do filehandle
 
 				for line in eachline(filehandle)
@@ -37,11 +37,11 @@ function CreateData()
 						a = round(Int, parse(Float64,x[1])/d);
 						b = round(Int, parse(Float64,x[2])/d);
 						if(a != preA || b != preB)
-						
+
 							write(f,string(a,",",b," "));
-							
+
 							#update minLatitudeAll,minLongitudeAll,maxLatitudeAll,maxLongitudeAll;
-							
+
 							if minLatitudeAll == 0 || minLatitudeAll > a
 								minLatitudeAll = a;
 							end
@@ -54,7 +54,7 @@ function CreateData()
 							if maxLongitudeAll == 0 || maxLongitudeAll < b
 								maxLongitudeAll = b;
 							end
-							
+
 							user_trajectory_lenght = user_trajectory_lenght + 1;
 
 							preA = a;
@@ -63,10 +63,10 @@ function CreateData()
 					end
 					dismiss=dismiss+1;
 				end
-			 
+
 			end
 		end
-		
+
 		if(user_trajectory_lenght > maxLenghtTrajectory)
 			maxLenghtTrajectory = user_trajectory_lenght;
 		end
@@ -74,7 +74,7 @@ function CreateData()
 		close(f);
 		println(userFolder);
 	end
-	
+
 	f = open("maxmin.txt","w");
 	write(f,string(minLatitudeAll," ", maxLatitudeAll, " ", minLongitudeAll, " ", maxLongitudeAll, " ", maxLenghtTrajectory));
 	close(f);
@@ -85,7 +85,7 @@ function hashing_vectorizer(features,N)
 	x = zeros(N);
 	for f in features
 		h = hash(f);
-		x[h % N] += 1; 
+		x[(h % N)+1] += 1;
 	end
 	return x;
 end
@@ -118,10 +118,10 @@ function create_user_trajectory(u)
 						v[i] = index;
 						i = i + 1;
 					end
-				end	
+				end
 			end
 	end
-	
+
 	return v;
 end
 
@@ -164,7 +164,7 @@ function set_max_min_config_from_data()
 	maxmin = readall(f);
 	maxmin = split(maxmin," ");
 	close(f);
-	
+
 	minLatitudeAll = parse(Int,maxmin[1]);
 	maxLatitudeAll = parse(Int,maxmin[2]);
 	minLongitudeAll = parse(Int,maxmin[3]);
@@ -184,11 +184,11 @@ function run()
 		end
 	end
 
-			
+
 	println(string("Tao xong du lieu dua vao k-mean ",size(data)));
 	writedlm("KMeanData.txt",data);
 	#println("Ghi xong dữ liệu vô KMeanData.txt");
-	
+
 	run_kmean(data);
 end
 
@@ -206,36 +206,38 @@ function run1()
 			data[x,i] = t[x];
 		end
 	end
-	
+
 	println(string("Tao xong du lieu dua vao k-mean ",size(data)));
 	writedlm("KMeanData.txt",data);
 	#println("Ghi xong dữ liệu vô KMeanData.txt");
-	
+
 	run_kmean(data);
 end
 
 # Hàm chuyển đổi vector các điểm di chuyển của user sang thành vector quỹ đạo di chuyển
 function convert_to_trajectory_vector(v)
-	data = zeros(maxLenghtTrajectory,maxLenghtTrajectory);
-	
-	prePosition = -1;
-		for i in 1:maxLenghtTrajectory
-			if v[i] != 0
-				if prePosition == -1
-					prePosition = i;
-				else
-					data[prePosition,i] = 1;
-					prePosition = i;
-				end
+	w = maxLatitudeAll - minLatitudeAll;
+	h = maxLongitudeAll = minLongitudeAll;
+	data = zeros(maxLenghtTrajectory);
+	data_index = 1;
 
+	prePosition = -1;
+	for i in 1:maxLenghtTrajectory
+		if v[i] != 0
+			if prePosition == -1
+				prePosition = v[i];
+			else
+				data[data_index] = ((prePosition-1)*w) + v[i];
+				data_index = data_index + 1;
+				prePosition = v[i];
 			end
 		end
-		
-		DTemp = reshape(data,maxLenghtTrajectory*maxLenghtTrajectory,1);
-		Dtemp1 = hashing_vectorizer(DTemp,feature_hashing_lenght);
-		println(string("funcion convert_to_trajectory_vector(), kết quả: ", size(Dtemp1)));
-		return Dtemp1;
-		
+	end
+
+	Dtemp1 = hashing_vectorizer(data,feature_hashing_lenght);
+	#println(string("funcion convert_to_trajectory_vector(), kết quả: ", size(Dtemp1)));
+	return Dtemp1;
+
 end
 
 # Lấy các vector của các nhóm kết quả phân tích từ k-mean
@@ -249,7 +251,7 @@ function get_distance_of_two_vector(a,b)
 	return norm(a-b);
 end
 
-# Dự đoán vị trí sẽ đến tiếp theo của user 
+# Dự đoán vị trí sẽ đến tiếp theo của user
 # Duyệt quỹ đạo của các user cùng nhóm, chọn điểm đến tiếp theo, lấy điểm có tầng xuất xuất hiện nhiều nhất.
 function predict(current_position)
 	#println(string("Danh sách các user cùng nhóm với user đang test: ",listUserSameGroup));
@@ -271,14 +273,14 @@ function predict(current_position)
 					count = next_position[p];
 					next_position[p] = count + 1;
 				end
-				
+
 				if able_index < next_position[p]
 					able_index = p;
 				end
 			end
 		end
 	end
-	
+
 	println(string("Dự đoán điểm đến tiếp theo của user là: ",able_index, ", tỷ lệ xuất hiện: ", next_position[able_index]) );
 
 end
@@ -288,17 +290,17 @@ end
 function test(u)
 	kmeans_data = get_kmean_data_result();
 	#println(string("size của dữ liệu kmean =",size(kmeans_data)));
-	
+
 	min_distance =0;
 	min_index = 1;
 	user_vector = create_user_trajectory(u);
 	for i in 1:number_group_kmean
 		kmean_vector = kmeans_data[:,i];
 		d = get_distance_of_two_vector(kmean_vector,user_vector);
-		
+
 		if min_distance == 0
 			min_distance = d;
-		end	
+		end
 		#can hoi lai thay cho so sanh nay
 		if d < min_distance
 			min_distance = d;
@@ -314,7 +316,7 @@ function test(u)
 			listUserSameGroup[i] = i;
 		end
 	end
-	
+
 	print("Danh sách các user cùng nhóm với user đang test:");
 	print(keys(listUserSameGroup));
 	println("");
@@ -324,7 +326,5 @@ function test(u)
 			print(string(i,"=>"));
 		end
 	end
-	
-end
- 
 
+end
