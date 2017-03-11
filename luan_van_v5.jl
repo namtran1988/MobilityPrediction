@@ -1,3 +1,4 @@
+#println(string("create user trajectory:", length(v)));
 
 ###########################################################################
 # Tạo ma trận location, chia nho map thanh 100 phần bằng nhau
@@ -10,7 +11,7 @@
 ###########################################################################
 
 using Clustering
-d = 0.1; # Độ rộng của mỗi ô trên bản đồ
+d = 0.01; # Độ rộng của mỗi ô trên bản đồ
 test_user_count = 182;
 feature_hashing_lenght = 1000; # Số lượng dữ liệu muốn đưa về khi sử dụng feature hashing
 number_group_kmean = 20;
@@ -20,6 +21,7 @@ minLongitudeAll = -1800;
 maxLongitudeAll = 1800;
 maxLenghtTrajectory = 10104;
 listUserSameGroup = Dict(); # Danh sách user chung nhóm với user đang test
+predict_position = 0;
 
 function CreateData()
 	folderName = "/Users/me294cto/Geolife Trajectories 1.3/Data/";
@@ -117,7 +119,8 @@ end
 # u: index của user
 function create_user_trajectory(u,include_last_location)
 	m = maxLatitudeAll - minLatitudeAll;
-	v = zeros(Int64,maxLenghtTrajectory,1);
+	#v = zeros(Int64,maxLenghtTrajectory,1);
+	v = Int64[];
 	i = 1;
 	open(string("userdata/",get_file_name(u))) do filehandle
 			for line in eachline(filehandle)
@@ -127,15 +130,17 @@ function create_user_trajectory(u,include_last_location)
 						a = parse(Int,p1[1]) - minLatitudeAll;
 						b = parse(Int,p1[2]) - minLongitudeAll;
 						index = ((a-1)*m) + b;
-						v[i] = index;
-						i = i + 1;
+						#v[i] = index;
+						#i = i + 1;
+						push!(v,index);
 					end
 				end
 			end
 	end
-	if(include_last_location == 0)
-		v[i-1] = 0;
+	if(length(v)>0 && include_last_location == 0)
+		v[length(v)] = 0;
 	end
+
 	return v;
 end
 
@@ -213,17 +218,15 @@ end
 function convert_to_trajectory_vector(v)
 	w = maxLatitudeAll - minLatitudeAll;
 	h = maxLongitudeAll = minLongitudeAll;
-	data = zeros(maxLenghtTrajectory);
-	data_index = 1;
+	data = Int64[];
 
 	prePosition = -1;
-		for i in 1:maxLenghtTrajectory
+		for i in 1:length(v)
 			if v[i] != 0
 				if prePosition == -1
 					prePosition = v[i];
 				else
-					data[data_index] = ((prePosition-1)*w) + v[i];
-					data_index = data_index + 1;
+					push!(data,((prePosition-1)*w) + v[i])
 					prePosition = v[i];
 				end
 			end
@@ -261,17 +264,23 @@ function predict(current_user, user_group_index)
 	#print("Danh sách các user cùng nhóm với user đang test:");
 	#print(keys(listUserSameGroup));
 
-	#print("Quy dao cua user dang test:");
-	user_vector = create_user_trajectory(current_user,0);
+	#print(string("Quy dao cua user dang test:",current_user));
+	user_vector = create_user_trajectory(current_user,1);
 	last_location = -1;
 	pre_last_location = -1;
-	for i in user_vector
-		if(i!=0)
-			pre_last_location = last_location;
-			last_location = i;
-			#print(string(i,"=>"));
-		end
+	#for i in user_vector
+		#if(i!=0)
+			#pre_last_location = last_location;
+			#last_location = i;
+			#print(string(count_index,"=>"));
+		#end
+	#end
+	println(string("chieu dai vector user nhan duoc:",length(user_vector)));
+	if(length(user_vector) >= (predict_position + 2))
+		last_location = user_vector[end];println(string("last_location: ",last_location));
+		pre_last_location = user_vector[length(user_vector)-1];println(string("pre_last_location: ",pre_last_location));
 	end
+
 
 	#println(string("Danh sách các user cùng nhóm với user đang test: ",listUserSameGroup));
 	next_position = Dict();
