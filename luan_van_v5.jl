@@ -21,7 +21,7 @@ minLongitudeAll = -1800;
 maxLongitudeAll = 1800;
 maxLenghtTrajectory = 10104;
 listUserSameGroup = Dict(); # Danh sách user chung nhóm với user đang test
-predict_position = 0;
+predict_position = 4;
 
 function CreateData()
 	folderName = "/Users/me294cto/Geolife Trajectories 1.3/Data/";
@@ -106,6 +106,7 @@ end
 
 # Lấy tên file của user u
 function get_file_name(u)
+	u = u -1;
 	if u < 10
 		return string("00",u,".txt");
 	elseif u < 100
@@ -200,7 +201,7 @@ function run()
 	set_max_min_config_from_data();
 	data = zeros(feature_hashing_lenght,test_user_count);
 	for i = 1:test_user_count
-		v = create_user_trajectory(i-1,0);
+		v = create_user_trajectory(i,0);
 		t = convert_to_trajectory_vector(v);
 		for x in 1:feature_hashing_lenght
 			data[x,i] = t[x];
@@ -268,17 +269,11 @@ function predict(current_user, user_group_index)
 	user_vector = create_user_trajectory(current_user,1);
 	last_location = -1;
 	pre_last_location = -1;
-	#for i in user_vector
-		#if(i!=0)
-			#pre_last_location = last_location;
-			#last_location = i;
-			#print(string(count_index,"=>"));
-		#end
-	#end
-	println(string("chieu dai vector user nhan duoc:",length(user_vector)));
+
+	#println(string("chieu dai vector user nhan duoc:",length(user_vector)));
 	if(length(user_vector) >= (predict_position + 2))
-		last_location = user_vector[end];println(string("last_location: ",last_location));
-		pre_last_location = user_vector[length(user_vector)-1];println(string("pre_last_location: ",pre_last_location));
+		last_location = user_vector[end - predict_position]; println(string("predict_location: ",last_location));
+		pre_last_location = user_vector[end - (predict_position + 1)]; println(string("current_location: ",pre_last_location));
 	end
 
 
@@ -287,28 +282,36 @@ function predict(current_user, user_group_index)
 	flag = 0;
 	count = 0;
 	able_index = 0;
+	able_index_count = 0;
 	for u in keys(listUserSameGroup)
-		user_vector = create_user_trajectory(u-1,1);
-		for p in user_vector
-			if p == pre_last_location
+		user_vector = create_user_trajectory(u,1);
+		for index in user_vector
+			if index == pre_last_location
 				count = count + 1;
 				flag = 1;
 			elseif flag == 1
 				flag = 0;
-				if haskey(next_position,p) == false
-					next_position[p] = 1;
+				if haskey(next_position,index) == false
+					next_position[index] = 1;
 				else
-					count = next_position[p];
-					next_position[p] = count + 1;
+					count = next_position[index];
+					if u == current_user
+						next_position[index] = count + 1000;
+					else
+						next_position[index] = count + 1;
+					end
 				end
 
-				if able_index < next_position[p]
-					able_index = p;
+				if able_index_count < next_position[index]
+					able_index_count = next_position[index];
+					able_index = index;
 				end
 			end
 		end
 	end
-
+	println(next_position);
+	println(string("able_index: ",able_index));
+	println(string("able_index_count: ", able_index_count));
 	#println(string("Dự đoán điểm đến tiếp theo của user là: ",able_index, ", tỷ lệ xuất hiện: ", next_position[able_index]) );
 	if able_index == 0
 		return 0;
@@ -349,7 +352,7 @@ end
 #
 function analytics()
 	true_predict_count = 0;
-	for i in 0:181
+	for i in 1:182
 		group_index = check_group(i);
 		result = predict(i,group_index);
 		println(string("Kết quả dự đoán điểm cuối:",result));

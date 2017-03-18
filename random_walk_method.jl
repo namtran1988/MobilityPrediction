@@ -30,6 +30,7 @@ function create_user_trajectory(u)
        end
      end
  end
+ #println(string("create user trajectory:", length(v)));
  return v;
 end
 
