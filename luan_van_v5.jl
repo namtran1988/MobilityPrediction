@@ -361,3 +361,10 @@ function analytics()
 
 	println(string("Tỷ lệ dự đóan trúng là: ",true_predict_count/182*100," %"));
 end
+
+function analyticsAll()
+	for i in 5:20
+		predict_position = i;
+		analytics();
+	end
+end

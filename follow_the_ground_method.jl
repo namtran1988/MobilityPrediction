@@ -36,6 +36,7 @@ end
 
 # Lấy tên file của user u
 function get_file_name(u)
+  u = u - 1;
 	if u < 10
 		return string("00",u,".txt");
 	elseif u < 100
@@ -94,28 +95,31 @@ function run()
 	set_max_min_config_from_data();
   true_predict_count = 0;
   false_predict_count = 0;
+  predict_position = 9;
+  for predict_position in 10:20
+    println(string("Predict_position: ", predict_position));
   for i = 1:test_user_count
-      v = create_user_trajectory(i-1);println(string("Test user ",i));
+      v = create_user_trajectory(i);#println(string("Test user ",i));
       #println(length(v));
-      if length(v) >= 2
-          current_index = v[length(v)-1];println(string("diem dang test ",current_index));
-          next_index = v[length(v)];println(string("diem den ke tiep ",next_index));
-          predict_index_1 = GetIndexOfPredictPosition(current_index,1);print(string(predict_index_1," "));
-          predict_index_2 = GetIndexOfPredictPosition(current_index,2);print(string(predict_index_2," "));
-          predict_index_3 = GetIndexOfPredictPosition(current_index,3);print(string(predict_index_3," "));
-          predict_index_4 = GetIndexOfPredictPosition(current_index,4);print(string(predict_index_4," "));
-          predict_index_5 = GetIndexOfPredictPosition(current_index,5);print(string(predict_index_5," "));
-          predict_index_6 = GetIndexOfPredictPosition(current_index,6);print(string(predict_index_6," "));
-          predict_index_7 = GetIndexOfPredictPosition(current_index,7);print(string(predict_index_7," "));
-          predict_index_8 = GetIndexOfPredictPosition(current_index,8);print(string(predict_index_8," "));
+      if length(v) >= (predict_position + 2)
+          current_index = v[end-(predict_position + 1)];#println(string("diem dang test ",current_index));
+          next_index = v[end - predict_position];#println(string("diem den ke tiep ",next_index));
+          predict_index_1 = GetIndexOfPredictPosition(current_index,1);#print(string(predict_index_1," "));
+          predict_index_2 = GetIndexOfPredictPosition(current_index,2);#print(string(predict_index_2," "));
+          predict_index_3 = GetIndexOfPredictPosition(current_index,3);#print(string(predict_index_3," "));
+          predict_index_4 = GetIndexOfPredictPosition(current_index,4);#print(string(predict_index_4," "));
+          predict_index_5 = GetIndexOfPredictPosition(current_index,5);#print(string(predict_index_5," "));
+          predict_index_6 = GetIndexOfPredictPosition(current_index,6);#print(string(predict_index_6," "));
+          predict_index_7 = GetIndexOfPredictPosition(current_index,7);#print(string(predict_index_7," "));
+          predict_index_8 = GetIndexOfPredictPosition(current_index,8);#print(string(predict_index_8," "));
           count_1 = 0; count_2 = 0; count_3 = 0; count_4 = 0; count_5 = 0; count_6 = 0; count_7 = 0; count_8 = 0;
 
           for j in 1:test_user_count
               if(j!=i)
-                  v1 = create_user_trajectory(j-1)
+                  v1 = create_user_trajectory(j)
                   flag = 0;
                   for l in v1
-                      if l==current_index;
+                      if l == current_index;
                           flag = 1;
                       end
 
@@ -144,8 +148,12 @@ function run()
               end
           end
           #kiem tra diem di chuyen ke tiep duoc nhieu nguoi lua chon nhat
-          max_count = count_1;
-          predict_next_index = predict_index_1;
+          max_count = -1;
+          predict_next_index = -1;
+          if(count_1>max_count)
+            max_count = count_1;
+            predict_next_index = predict_index_1;
+          end
           if(count_2>max_count)
             max_count = count_2;
             predict_next_index = predict_index_2;
@@ -176,9 +184,9 @@ function run()
           end
           # so sanh diem du doan voi diem den ke tiep tren thuc te
           if(predict_next_index == next_index)
-            true_predict_count  = true_predict_count + 1;println("Du doan dung");
+            true_predict_count  = true_predict_count + 1;#println("Du doan dung");
           else
-            false_predict_count  = false_predict_count + 1;println("Du doan sai");
+            false_predict_count  = false_predict_count + 1;#println("Du doan sai");
           end
 
 
@@ -189,5 +197,5 @@ function run()
   println(string("Tong so lan du doan dung: ", true_predict_count));
   println(string("Tong so lan du doan sai: ", false_predict_count));
   println(string("Ty le du doan dung: ", true_predict_count/(true_predict_count+false_predict_count)*100));
-
+end
 end

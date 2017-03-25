@@ -95,12 +95,13 @@ function run()
 	set_max_min_config_from_data();
   true_predict_count = 0;
   false_predict_count = 0;
+  predict_position = 19;
   for i = 1:test_user_count
       v = create_user_trajectory(i-1);println(string("Test user ",i));
       #println(length(v));
-      if length(v) >= 2
-          current_index = v[length(v)-1];println(string("diem dang test ",current_index));
-          next_index = v[length(v)];println(string("diem den ke tiep ",next_index));
+      if length(v) >= (predict_position + 2)
+          current_index = v[end-(predict_position + 1)];println(string("diem dang test ",current_index));
+          next_index = v[end - predict_position];println(string("diem den ke tiep ",next_index));
           random_value = rand([1,2,3,4,5,6,7,8]);
           predict_next_index = GetIndexOfPredictPosition(current_index,random_value);
 
